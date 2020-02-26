@@ -192,6 +192,7 @@ int main(int argc, char * argv[]) {
     int serial_baudrate = 115200;
     std::string frame_id;
     bool inverted = false;
+    bool rotated = false;
     bool angle_compensate = true;
     float max_distance = 8.0;
     int angle_compensate_multiple = 1;//it stand of angle compensate at per 1 degree
@@ -208,6 +209,7 @@ int main(int argc, char * argv[]) {
     nh_private.param<bool>("inverted", inverted, false);
     nh_private.param<bool>("angle_compensate", angle_compensate, false);
     nh_private.param<std::string>("scan_mode", scan_mode, std::string());
+    nh_private.param<bool>("rotated", rotated, false);
 
     ROS_INFO("RPLIDAR running on ROS package rplidar_ros. SDK Version:"RPLIDAR_SDK_VERSION"");
 
@@ -320,8 +322,15 @@ int main(int argc, char * argv[]) {
 
         if (op_result == RESULT_OK) {
             op_result = drv->ascendScanData(nodes, count);
-            float angle_min = DEG2RAD(-180.0f);
-            float angle_max = DEG2RAD(179.0f);
+            float angle_min;
+            float angle_max;
+            if(rotated) {
+                angle_min = DEG2RAD(-180.0f);
+                angle_max = DEG2RAD(179.0f);
+            } else {
+                angle_min = DEG2RAD(0.0f);
+                angle_max = DEG2RAD(359.0f);
+            }
             if (op_result == RESULT_OK) {
                 if (angle_compensate) {
                     //const int angle_compensate_multiple = 1;
@@ -370,8 +379,15 @@ int main(int argc, char * argv[]) {
                }
             } else if (op_result == RESULT_OPERATION_FAIL) {
                 // All the data is invalid, just publish them
-                float angle_min = DEG2RAD(-180.0f);
-                float angle_max = DEG2RAD(179.0f);
+                float angle_min;
+                float angle_max;
+                if(rotated) {
+                    angle_min = DEG2RAD(-180.0f);
+                    angle_max = DEG2RAD(179.0f);
+                } else {
+                    angle_min = DEG2RAD(0.0f);
+                    angle_max = DEG2RAD(359.0f);
+                }
                 publish_scan(&scan_pub, nodes, count,
                              start_scan_time, scan_duration, inverted,
                              angle_min, angle_max, max_distance,
